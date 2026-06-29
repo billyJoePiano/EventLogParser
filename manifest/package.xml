@@ -15,10 +15,6 @@
 		<name>ApexTrigger</name>
 	</types>
 	<types>
-		<members>standard__AppLauncher</members>
-		<name>CustomApplication</name>
-	</types>
-	<types>
 		<members>ApexUnexpectedException__c</members>
 		<members>EventLogFileParsing__c</members>
 		<name>CustomObject</name>
@@ -42,6 +38,10 @@
 		<members>ApexUnexpectedException__c.All</members>
 		<members>EventLogFileParsing__c.All</members>
 		<name>ListView</name>
+	</types>
+	<types>
+		<members>EventLogFileParserAdmin</members>
+		<name>PermissionSet</name>
 	</types>
 	<types>
 		<members>EventLogFileParsing__c.EventLogFileParsing_UpdateAction</members>
