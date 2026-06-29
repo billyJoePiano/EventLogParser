@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>ExceptionMessageSummary__c</fullName>
+    <description>For list views and querying.
+
+Set by Apex Trigger ApexUnexpectedExceptionTrigger.  Strips the prefix with the org name from the Exception Message, and abbreviates it to a max of 255 characters.</description>
+    <encryptionScheme>None</encryptionScheme>
+    <externalId>false</externalId>
+    <label>Exception Message Summary</label>
+    <length>255</length>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

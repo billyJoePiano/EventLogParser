@@ -15,7 +15,7 @@ public without sharing class ApexUnexpectedExceptionParsingJob extends Batchable
 
     public final QueryMode mode;
     public final Integer batchSize;
-    public transient Boolean rethrowExceptions = false; // set to true when running synchronously, e.g. in anonymous execute
+    public transient Boolean rethrowExceptions = false; // set to true when running synchronously, e.g. in anonymous execute using executeSync()
 
     public ApexUnexpectedExceptionParsingJob() {
         this(DEFAULT_QUERY_MODE, DEFAULT_BATCH_SIZE);
@@ -37,6 +37,19 @@ public without sharing class ApexUnexpectedExceptionParsingJob extends Batchable
         this.batchSize = batchSize;
     }
 
+    public void executeSync() {
+        this.executeSync(true);
+    }
+
+    public void executeSync(Boolean rethrowExceptions) {
+        this.rethrowExceptions = rethrowExceptions;
+        List<EventLogFile> files = this.start((Database.BatchableContext)null);
+        if (files != null && files.size() > 0) {
+            this.execute((Database.BatchableContext)null, files);
+        }
+        this.finish((Database.BatchableContext)null);
+    }
+
     public void executeBatch() {
         this.execute((SchedulableContext)null);
     }
@@ -52,17 +65,6 @@ public without sharing class ApexUnexpectedExceptionParsingJob extends Batchable
             Logger.error('ApexUnexpectedExceptionParsingJob.execute(SchedulableContext)', e);
             Logger.saveLog();
         }
-    }
-
-    public void executeSync() {
-        this.executeSync(true);
-    }
-
-    public void executeSync(Boolean rethrowExceptions) {
-        this.rethrowExceptions = rethrowExceptions;
-        List<EventLogFile> files = this.start((Database.BatchableContext)null);
-        this.execute((Database.BatchableContext)null, files);
-        this.finish((Database.BatchableContext)null);
     }
 
     public List<EventLogFile> start(Database.BatchableContext bc) {

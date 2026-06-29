@@ -16,7 +16,7 @@ public abstract class BatchableLogger implements Database.Stateful {
         try {
             Logger.setParentLogTransactionId(this.loggerTransactionId);
         } catch (Exception e) {
-            Logger.error('BatchableLogged.setLoggerTransactionId: ' + this.loggerTransactionId, e);
+            Logger.error('BatchableLogger.setLoggerTransactionId: ' + this.loggerTransactionId, e);
         }
     }
 

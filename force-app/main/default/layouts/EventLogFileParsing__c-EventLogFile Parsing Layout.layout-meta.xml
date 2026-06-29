@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Layout xmlns="http://soap.sforce.com/2006/04/metadata">
-    <excludeButtons>OpenSlackRecordChannel</excludeButtons>
     <excludeButtons>Submit</excludeButtons>
     <layoutSections>
         <customLabel>false</customLabel>
@@ -138,9 +137,10 @@
     <relatedLists>
         <fields>NAME</fields>
         <fields>Timestamp__c</fields>
+        <fields>User__c</fields>
         <fields>ApexEntityName__c</fields>
         <fields>ExceptionType__c</fields>
-        <fields>User__c</fields>
+        <fields>ExceptionMessageSummary__c</fields>
         <relatedList>ApexUnexpectedException__c.EventLogFileParsing__c</relatedList>
         <sortField>Timestamp__c</sortField>
         <sortOrder>Asc</sortOrder>

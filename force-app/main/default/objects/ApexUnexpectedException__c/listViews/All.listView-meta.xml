@@ -2,6 +2,15 @@
 <ListView xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>All</fullName>
     <columns>NAME</columns>
+    <columns>EventLogFileParsing__c</columns>
+    <columns>Timestamp__c</columns>
+    <columns>User__c</columns>
+    <columns>ApexEntityName__c</columns>
+    <columns>ExceptionType__c</columns>
+    <columns>ExceptionCategory__c</columns>
+    <columns>RequestId__c</columns>
+    <columns>ExceptionMessageSummary__c</columns>
+    <columns>StackTrace__c</columns>
     <filterScope>Everything</filterScope>
     <label>All</label>
 </ListView>
