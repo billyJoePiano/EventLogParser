@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>EventLogFileParsing__c</fullName>
+    <label>EventLogFile Parsing</label>
+    <referenceTo>EventLogFileParsing__c</referenceTo>
+    <relationshipLabel>Apex Unexpected Exceptions</relationshipLabel>
+    <relationshipName>ApexUnexpectedExceptions</relationshipName>
+    <relationshipOrder>0</relationshipOrder>
+    <reparentableMasterDetail>false</reparentableMasterDetail>
+    <trackTrending>false</trackTrending>
+    <type>MasterDetail</type>
+    <writeRequiresMasterRead>false</writeRequiresMasterRead>
+</CustomField>
