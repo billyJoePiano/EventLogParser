@@ -51,6 +51,11 @@ public without sharing class ApexUnexpectedExceptionParsingJob extends Batchable
     }
 
     public void executeBatch() {
+        this.executeBatch(true);
+    }
+
+    public void executeBatch(Boolean rethrowExceptions) {
+        this.rethrowExceptions = rethrowExceptions;
         this.execute((SchedulableContext)null);
     }
 
@@ -64,6 +69,9 @@ public without sharing class ApexUnexpectedExceptionParsingJob extends Batchable
         } catch (Exception e) {
             Logger.error('ApexUnexpectedExceptionParsingJob.execute(SchedulableContext)', e);
             Logger.saveLog();
+            if (this.rethrowExceptions) {
+                throw e;
+            }
         }
     }
 
@@ -122,6 +130,7 @@ public without sharing class ApexUnexpectedExceptionParsingJob extends Batchable
                 if (parsing.Id__c == file.Id && parsing.LastModifiedDate__c <= file.LastModifiedDate && parsing.SystemModstamp__c <= file.SystemModstamp) {
                     events.remove(i);
                     i--;
+                    break;
                 }
             }
         }
