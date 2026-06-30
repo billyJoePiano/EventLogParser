@@ -170,7 +170,7 @@ public class CSVDeserializer {
         UnmappedValuesJsonSerializer jsonSerializer = new UnmappedValuesJsonSerializer(targetFieldName);
         this.unmappedSObjectHandler = jsonSerializer;
         this.unmappedMapHandler = toJsonForBoth ? (UnmappedValuesMapHandler)jsonSerializer : new UnmappedValuesToMapField(targetFieldName);
-        removeTargetFieldMapping(targetFieldName);
+        this.removeTargetFieldMapping(targetFieldName);
         return this;
     }
 
