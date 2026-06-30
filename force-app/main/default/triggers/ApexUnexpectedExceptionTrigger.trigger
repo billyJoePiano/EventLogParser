@@ -1,13 +1,16 @@
-trigger ApexUnexpectedExceptionTrigger on ApexUnexpectedException__c (before insert, before update) {
-    String expectedPrefix = '"Developer script exception from ' + UserInfo.getOrganizationName() + ' : ';
-    for (ApexUnexpectedException__c exc : Trigger.new) {
-        String msg = exc.ExceptionMessage__c;
-        if (msg != null) {
-            if (msg.length() >= expectedPrefix.length() && msg.substring(0, expectedPrefix.length()) == expectedPrefix) {
-                msg = '"...' + msg.substring(expectedPrefix.length());
-            }
-            msg = msg.abbreviate(255);
+trigger ApexUnexpectedExceptionTrigger on ApexUnexpectedException__c (before insert, before update, after insert, after update) {
+    ApexUnexpectedExceptionTriggerHandler handler = new ApexUnexpectedExceptionTriggerHandler();
+    if (Trigger.isInsert) {
+        if (Trigger.isBefore) {
+            handler.beforeInsert(Trigger.new);
+        } else {
+            handler.afterInsert(Trigger.new);
         }
-        exc.ExceptionMessageSummary__c = msg;
+    } else if (Trigger.isUpdate) {
+        if (Trigger.isBefore) {
+            handler.beforeUpdate(Trigger.new, Trigger.oldMap);
+        } else {
+            handler.afterUpdate(Trigger.new, Trigger.oldMap);
+        }
     }
 }

@@ -3,6 +3,7 @@
 	<types>
 		<members>ApexUnexpectedExceptionParsingJob</members>
 		<members>ApexUnexpectedExceptionParsingJobTest</members>
+		<members>ApexUnexpectedExceptionTriggerHandler</members>
 		<members>BatchableLogger</members>
 		<members>CSVDeserializer</members>
 		<members>CSVDeserializerTest</members>

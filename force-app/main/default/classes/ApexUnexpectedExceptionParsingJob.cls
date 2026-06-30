@@ -216,6 +216,7 @@ public without sharing class ApexUnexpectedExceptionParsingJob extends Batchable
     }
 
     public static ParsingResult parseFile(EventLogFile file, CSVDeserializer ds) {
+        Datetime start = System.now();
         EventLogFileParsing__c parsing = new EventLogFileParsing__c(
             ApiVersion__c = file.ApiVersion,
             CreatedDate__c = file.CreatedDate,
@@ -226,18 +227,16 @@ public without sharing class ApexUnexpectedExceptionParsingJob extends Batchable
             LogFileFieldNames__c = file.LogFileFieldNames,
             LogFileFieldTypes__c = file.LogFileFieldTypes,
             LogFileLength__c = file.LogFileLength,
+            ParsingTimestamp__c = start,
             Sequence__c = file.Sequence,
             SystemModStamp__c = file.SystemModstamp
         );
-        parsing.ParsingTimestamp__c = Datetime.now();
-        Long start = System.now().getTime();
         ds.setBody(file.LogFile);
         parsing.LogFileLengthActual__c = ds.getParser().body.length();
         parsing.LogFileFieldNamesActual__c = String.join(ds.getHeaders(), ',');
         
         List<ApexUnexpectedException__c> exceptions = (List<ApexUnexpectedException__c>)ds.deserialize(ApexUnexpectedException__c.SObjectType);
-        Long fin = System.now().getTime();
-        parsing.ParsingTime__c = fin - start;
+        parsing.ParsingTime__c = System.now().getTime() - start.getTime();
         return new ParsingResult(parsing, exceptions);
     }
 
@@ -273,7 +272,7 @@ public without sharing class ApexUnexpectedExceptionParsingJob extends Batchable
         }
         return successfulSaves;
     }
-    
+
     private void processExceptions(List<ParsingResult> parsingResults) {
         List<ApexUnexpectedException__c> excsToInsert = new List<ApexUnexpectedException__c>();
         //Verify that the UserIds still actually exist in the system, and remove any that are invalid
@@ -294,22 +293,24 @@ public without sharing class ApexUnexpectedExceptionParsingJob extends Batchable
             excsToInsert.addAll(result.exceptions);
         }
 
-        Set<Id> users = new Map<Id, User>([SELECT Id FROM User WHERE Id IN :userIds WITH SYSTEM_MODE]).keySet();
-        userIds.removeAll(users); // remaining Ids will only be for Users which do NOT actually exist in the system
-        if (userIds.size() > 0) {
-            List<Id> eventLogFileIds = new List<Id>();
-            for (Id userId : userIds) {
-                //set User__c field to null in relevant exc records
-                for (ApexUnexpectedException__c exc : excsToInsert) {
-                    if (exc.User__c == userId) {
-                        exc.User__c = null;
-                        eventLogFileIds.add(exc.EventLogFileParsing__r.Id__c); //Id of EventLogFile
-                        eventLogFileIds.add(exc.EventLogFileParsing__c); //Id of EventLogFileParsing__c
-                    }
+        Map<Id, User> users = new Map<Id, User>([SELECT Id FROM User WHERE Id IN :userIds WITH SYSTEM_MODE]);
+        List<Id> eventLogFileIdsWithInvalidUserIds = new List<Id>();
+        Set<String> invalidUserIds = new Set<String>();
+        for (ApexUnexpectedException__c exc : excsToInsert) {
+            if (exc.User__c != null && users.containsKey(exc.User__c)) {
+                exc.User__r = users.get(exc.User__c);
+            } else {
+                exc.User__c = null;
+                if (exc.UserId__c != null && exc.UserId__c.length() > 0) {
+                    eventLogFileIdsWithInvalidUserIds.add(exc.EventLogFileParsing__r.Id__c); //Id of EventLogFile
+                    eventLogFileIdsWithInvalidUserIds.add(exc.EventLogFileParsing__c); //Id of EventLogFileParsing__c
+                    invalidUserIds.add(exc.UserId__c);
                 }
             }
-            Logger.warn('ApexUnexpectedExceptionParsingJob.processEvents: Invalid UserIds provided in CSV parsing output(s):\n' + String.join(userIds, ' , '))
-                .setRecord(eventLogFileIds);
+        }
+        if (eventLogFileIdsWithInvalidUserIds.size() > 0) {
+            Logger.warn('ApexUnexpectedExceptionParsingJob.processEvents: Invalid UserIds provided in CSV parsing output(s):\n' + String.join(invalidUserIds, ' , '))
+                .setRecord(eventLogFileIdsWithInvalidUserIds);
         }
 
         List<Database.SaveResult> saveResults = Database.insert(excsToInsert, false, AccessLevel.SYSTEM_MODE);
