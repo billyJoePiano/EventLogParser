@@ -127,7 +127,7 @@ public without sharing class ApexUnexpectedExceptionParsingJob extends Batchable
             EventLogFile file = events.get(i);
             Boolean alreadyParsed = false;
             for (EventLogFileParsing__c parsing : prevParsings) {
-                if (parsing.Id__c == file.Id && parsing.LastModifiedDate__c <= file.LastModifiedDate && parsing.SystemModstamp__c <= file.SystemModstamp) {
+                if (parsing.Id__c == file.Id && parsing.LastModifiedDate__c >= file.LastModifiedDate && parsing.SystemModstamp__c >= file.SystemModstamp) {
                     events.remove(i);
                     i--;
                     break;
