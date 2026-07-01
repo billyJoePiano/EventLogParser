@@ -1,6 +1,8 @@
-/* TODO: This ensures code coverage, but doesn't enforce the expected functionality of the class under test,
- * and depends on already-existing EventLogFiles with Apex Unexpected Exceptions in the sandbox/org.
-*/
+/**
+ * TODO: These tests ensure code coverage, but don't enforce the expected functionality of the 2 classes under test.
+ * They depend on already-existing EventLogFiles (with Apex Unexpected Exceptions) in the sandbox/org.  Ideally, there
+ * should be more assertions to verify expected results, and tests should use mock CSV files designed for testing.
+ */
 @IsTest
 public class ApexUnexpectedExceptionParsingJobTest {
     public static final ApexUnexpectedExceptionParsingJob.QueryMode AFTER_MOST_RECENT = ApexUnexpectedExceptionParsingJob.AFTER_MOST_RECENT;
@@ -55,5 +57,20 @@ public class ApexUnexpectedExceptionParsingJobTest {
         new ApexUnexpectedExceptionParsingJob()
             .processAndLogDatabaseSaveResults('ApexUnexpectedExceptionParsingJobTest.testBatchableLoggerFailure',
                                               EventLogFileParsing__c.SObjectType, saveResults, parsings);
+
+        // test update trigger handler code path for ApexUnexpectedException__c
+        System.assert(saveResults.get(1).isSuccess());
+        ApexUnexpectedException__c exc = new ApexUnexpectedException__c(
+            EventLogFileParsing__c = parsings.get(1).Id,
+            ExceptionMessage__c = 'test1'
+        );
+        Database.insert(exc, AccessLevel.SYSTEM_MODE);
+        exc = [SELECT Id, ExceptionMessageSummary__c FROM ApexUnexpectedException__c WHERE Id = :exc.Id WITH SYSTEM_MODE];
+        System.assertEquals('test1', exc.ExceptionMessageSummary__c);
+
+        exc.ExceptionMessage__c = ApexUnexpectedExceptionTriggerHandler.EXPECTED_MSG_PREFIX + 'test2"';
+        Database.update(exc, AccessLevel.SYSTEM_MODE);
+        exc = [SELECT Id, ExceptionMessageSummary__c FROM ApexUnexpectedException__c WHERE Id = :exc.Id WITH SYSTEM_MODE];
+        System.assertEquals('"... test2"', exc.ExceptionMessageSummary__c);
     }
 }

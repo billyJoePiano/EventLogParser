@@ -137,6 +137,13 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.UnmappedValues__c</fieldItem>
                 <identifier>RecordUnmappedValues_cField</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!Record.HasUnmappedValues__c}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>true</rightValue>
+                    </criteria>
+                </visibilityRule>
             </fieldInstance>
         </itemInstances>
         <name>Facet-ab486d81-9626-4407-97b4-7340700df4b8</name>

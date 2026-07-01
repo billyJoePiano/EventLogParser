@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>HasUnmappedValues__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>Automatically set to true when UnmappedValues__c is not null and has length &gt; 0, otherwise set to false.  See Apex class: ApexUnexpectedExceptionTriggerHandler</description>
+    <label>HasUnmappedValues</label>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>

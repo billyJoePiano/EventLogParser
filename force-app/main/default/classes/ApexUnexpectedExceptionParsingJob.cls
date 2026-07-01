@@ -15,7 +15,7 @@ public without sharing class ApexUnexpectedExceptionParsingJob extends Batchable
 
     public final QueryMode mode;
     public final Integer batchSize;
-    public transient Boolean rethrowExceptions = false; // set to true when running synchronously, e.g. in anonymous execute using executeSync()
+    public transient Boolean rethrowExceptions = false; // set to true when running synchronously, e.g. in anonymous execute using executeSync() or executeBatch()
 
     public ApexUnexpectedExceptionParsingJob() {
         this(DEFAULT_QUERY_MODE, DEFAULT_BATCH_SIZE);
@@ -125,7 +125,6 @@ public without sharing class ApexUnexpectedExceptionParsingJob extends Batchable
 
         for (Integer i = 0; i < events.size(); i++) {
             EventLogFile file = events.get(i);
-            Boolean alreadyParsed = false;
             for (EventLogFileParsing__c parsing : prevParsings) {
                 if (parsing.Id__c == file.Id && parsing.LastModifiedDate__c >= file.LastModifiedDate && parsing.SystemModstamp__c >= file.SystemModstamp) {
                     events.remove(i);
