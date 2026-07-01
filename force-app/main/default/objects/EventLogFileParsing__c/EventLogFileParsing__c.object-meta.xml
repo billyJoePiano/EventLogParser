@@ -161,8 +161,9 @@
     <externalSharingModel>Private</externalSharingModel>
     <label>EventLogFile Parsing</label>
     <nameField>
-        <displayFormat>L-{000000}</displayFormat>
+        <displayFormat>LOG-{000000}</displayFormat>
         <label>EventLogFile Parsing Number</label>
+        <startingNumber>1</startingNumber>
         <type>AutoNumber</type>
     </nameField>
     <pluralLabel>EventLogFile Parsings</pluralLabel>

@@ -161,8 +161,9 @@
     <externalSharingModel>ControlledByParent</externalSharingModel>
     <label>Apex Unexpected Exception</label>
     <nameField>
-        <displayFormat>E-{000000}</displayFormat>
+        <displayFormat>EXC-{000000}</displayFormat>
         <label>Number</label>
+        <startingNumber>1</startingNumber>
         <type>AutoNumber</type>
     </nameField>
     <pluralLabel>Apex Unexpected Exceptions</pluralLabel>
