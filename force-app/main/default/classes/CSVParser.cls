@@ -1,3 +1,7 @@
+/**
+ * Parses CSV files into iterator of iterators of Strings.  Each CSVParser is a stateful iterator that returns
+ * Rows (inner class), and each Row is a stateful iterator that return Strings
+ */
 public class CSVParser implements Iterator<CSVParser.Row>, Iterable<CSVParser.Row> {
     public static final Integer LF = '\n'.charAt(0);
     public static final Integer CR = '\r'.charAt(0);

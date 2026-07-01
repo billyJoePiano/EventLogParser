@@ -1,3 +1,11 @@
+/**
+ * Wrapper for CSVParser that converts each CSV row into either an SObject of specified type, or a Map<String, Object>.
+ * Field mappings must be set using the provided overridden methods setFieldMapping and setColumnMapping.  These methods
+ * return the CSVDeserializer object, so can be chained, e.g.:
+ *      deserializer.setFieldMapping('EVENT_TYPE', 'EventType__c').setColumnMapping(3, 'RequestId__c')
+ * 
+ * For usage example, see: ApexUnexpectedExceptionParsingJob
+ */
 public class CSVDeserializer {
     public static final EmptyStringToNullConverter EMPTY_TO_NULL_CONVERTER = new EmptyStringToNullConverter();
     public static final IntegerConverter INTEGER_CONVERTER = new IntegerConverter();

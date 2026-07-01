@@ -1,3 +1,7 @@
+/**
+ * Generic class with utility methods for logging DB transactions in a Batchable job.
+ * For example of implementation, see: ApexUnexpectedExceptionParsingJob
+ */
 public abstract class BatchableLogger implements Database.Stateful {
     public final String loggerTransactionId;
 
