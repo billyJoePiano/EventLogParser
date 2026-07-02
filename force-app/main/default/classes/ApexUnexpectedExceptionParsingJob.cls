@@ -371,7 +371,7 @@ public without sharing class ApexUnexpectedExceptionParsingJob extends Batchable
                         unmappedValues.remove(i);
                         i--;
                     } else {
-                        Logger.debug('ApexUnexpectedExceptionParsingJob.UnmappedValuesHandler.handle, invalid TIMESTAMP: ' + val)
+                        Logger.debug('ApexUnexpectedExceptionParsingJob.UnmappedValuesHandler.handle, invalid/mismatched TIMESTAMP: ' + val)
                             .setExceptionDetails(exc)
                             .setRecord(this.eventLogFileId);
                     }
