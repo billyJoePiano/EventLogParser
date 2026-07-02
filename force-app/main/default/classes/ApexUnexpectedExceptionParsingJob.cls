@@ -1,3 +1,7 @@
+/**
+ * Parses new EventLogFiles of type ApexUnexpectedException, and adds new records of type
+ * EventLogFileParsing__c and ApexUnexpectedException__c
+ */
 public without sharing class ApexUnexpectedExceptionParsingJob extends BatchableLogger implements Schedulable, Database.Batchable<EventLogFile>, Database.Stateful {
     /* QueryMode enum specifies how to query for new EventLogFiles
      *
@@ -201,8 +205,7 @@ public without sharing class ApexUnexpectedExceptionParsingJob extends Batchable
             .setFieldMapping('STACK_TRACE', 'StackTrace__c')
             .setFieldMapping('EXCEPTION_CATEGORY', 'ExceptionCategory__c')
             .setFieldMapping('TIMESTAMP_DERIVED', 'Timestamp__c', CSVDeserializer.DATETIME_CONVERTER)
-            .setFieldMapping('USER_ID_DERIVED', 'UserId__c')
-            .setUnmappedValuesSObjectHandler(new UnmappedValuesHandler());
+            .setFieldMapping('USER_ID_DERIVED', 'UserId__c');
     }
 
     public class ParsingResult implements SObjectWrapper {
@@ -240,6 +243,7 @@ public without sharing class ApexUnexpectedExceptionParsingJob extends Batchable
             SystemModStamp__c = file.SystemModstamp
         );
         ds.setBody(file.LogFile);
+        ds.setUnmappedValuesSObjectHandler(new UnmappedValuesHandler(file.Id));
         parsing.LogFileLengthActual__c = ds.getParser().body.length();
         parsing.LogFileFieldNamesActual__c = String.join(ds.getHeaders(), ',');
         
@@ -326,8 +330,10 @@ public without sharing class ApexUnexpectedExceptionParsingJob extends Batchable
     }
 
     public class UnmappedValuesHandler extends CSVDeserializer.UnmappedValuesJsonSerializer {
-        public UnmappedValuesHandler() {
+        public final Id eventLogFileId;
+        public UnmappedValuesHandler(Id eventLogFileId) {
             super('UnmappedValues__c', true);
+            this.eventLogFileId = eventLogFileId;
         }
 
         override public void handle(SObject o, List<CSVDeserializer.UnmappedValue> unmappedValues) {
@@ -335,29 +341,39 @@ public without sharing class ApexUnexpectedExceptionParsingJob extends Batchable
             for (Integer i = 0; i < unmappedValues.size(); i++) {
                 CSVDeserializer.UnmappedValue value = unmappedValues.get(i);
                 if (value.columnHeader == 'USER_ID') {
-                    Id userId;
+                    Id userId = null;
+                    Exception exc = null;
                     try {
                         userId = Id.valueOf(value.value);
                     } catch (Exception e) {
-                        continue;
+                        exc = e;
                     }
-                    if (userId == obj.UserId__c) {
+                    if (userId != null && userId == obj.UserId__c) {
                         unmappedValues.remove(i);
                         i--;
+                    } else {
+                        Logger.debug('ApexUnexpectedExceptionParsingJob.UnmappedValuesHandler.handle, invalid/mismatched USER_ID: ' + value.value)
+                            .setExceptionDetails(exc)
+                            .setRecord(this.eventLogFileId);
                     }
                 } else if (value.columnHeader == 'TIMESTAMP' && value.value.length() > 12) {
                     String val = value.value;
-                    Datetime timestamp;
+                    Datetime timestamp = null;
+                    Exception exc = null;
                     try {
                         String formatted = val.substring(0, 4) + '-' + val.substring(4, 6) + '-' + val.substring(6, 8)
                             + 'T' + val.substring(8, 10) + ':' + val.substring(10, 12) + ':' + val.substring(12);
                         timestamp = CSVDeserializer.DATETIME_CONVERTER.convert(formatted);
                     } catch (Exception e) {
-                        continue;
+                        exc = e;
                     }
-                    if (timestamp == obj.Timestamp__c) {
+                    if (timestamp != null && timestamp == obj.Timestamp__c) {
                         unmappedValues.remove(i);
                         i--;
+                    } else {
+                        Logger.debug('ApexUnexpectedExceptionParsingJob.UnmappedValuesHandler.handle, invalid TIMESTAMP: ' + val)
+                            .setExceptionDetails(exc)
+                            .setRecord(this.eventLogFileId);
                     }
                 }
             }
