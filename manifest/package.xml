@@ -16,6 +16,10 @@
 		<name>ApexTrigger</name>
 	</types>
 	<types>
+		<members>LoggerPlugin.BatchableLogger_SaveListener</members>
+		<name>CustomMetadata</name>
+	</types>
+	<types>
 		<members>ApexUnexpectedException__c</members>
 		<members>EventLogFileParsing__c</members>
 		<name>CustomObject</name>

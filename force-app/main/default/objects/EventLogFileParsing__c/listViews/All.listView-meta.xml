@@ -3,6 +3,7 @@
     <fullName>All</fullName>
     <columns>NAME</columns>
     <columns>Id__c</columns>
+    <columns>ExceptionsCount__c</columns>
     <columns>ParsingTimestamp__c</columns>
     <columns>LogDate__c</columns>
     <columns>CreatedDate__c</columns>
