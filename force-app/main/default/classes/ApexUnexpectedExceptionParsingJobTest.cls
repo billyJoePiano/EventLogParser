@@ -73,4 +73,22 @@ public class ApexUnexpectedExceptionParsingJobTest {
         exc = [SELECT Id, ExceptionMessageSummary__c FROM ApexUnexpectedException__c WHERE Id = :exc.Id WITH SYSTEM_MODE];
         System.assertEquals('"... test2"', exc.ExceptionMessageSummary__c);
     }
+
+    @IsTest
+    public static void testExceptionsAndEdgeCases() {
+        try {
+            new ApexUnexpectedExceptionParsingJob(null, null);
+            System.assert(false, 'Expected NullPointerException');
+        } catch (NullPointerException e) { }
+
+        ApexUnexpectedExceptionParsingJob job = new ApexUnexpectedExceptionParsingJob(0);
+        List<EventLogFile> events = job.start(null);
+        System.assertEquals(0, events.size());
+
+        job.rethrowExceptions = true;
+        try {
+            job.execute(null, null);
+            System.assert(false, 'Expected NullPointerException');
+        } catch (NullPointerException e) { }
+    }
 }

@@ -82,17 +82,26 @@ public without sharing class ApexUnexpectedExceptionParsingJob extends Batchable
     public List<EventLogFile> start(Database.BatchableContext bc) {
         this.setLoggerTransactionId();
         try {
+            List<EventLogFile> events;
             switch on this.mode {
                 when AFTER_MOST_RECENT {
-                    return queryEventsAfterMostRecent();
+                    events = queryEventsAfterMostRecent();
                 }
                 when ID_NOT_YET_PARSED {
-                    return queryEventsNotYetParsed();
+                    events = queryEventsNotYetParsed();
                 }
                 when else {
                     throw new NullPointerException();
                 }
             }
+            if (Test.isRunningTest() && events.size() > this.batchSize) {
+                List<EventLogFile> fullEvents = events;
+                events = new List<EventLogFile>();
+                for (Integer i = 0; i < this.batchSize; i++) {
+                    events.add(fullEvents.get(i));
+                }
+            }
+            return events;
         } catch (Exception e) {
             Logger.error('ApexUnexpectedExceptionParsingJob.start query', e);
             if (this.rethrowExceptions) {
@@ -185,7 +194,7 @@ public without sharing class ApexUnexpectedExceptionParsingJob extends Batchable
             }
         } catch (Exception e) {
             Logger.error('ApexUnexpectedExceptionParsingJob.execute EXCEPTION', e)
-                .setRecord(new Map<Id, EventLogFile>(events).keySet());
+                .setRecord(new Map<Id, EventLogFile>(events ?? new List<EventLogFile>()).keySet());
             if (this.rethrowExceptions) {
                 throw e;
             }

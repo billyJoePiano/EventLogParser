@@ -2,15 +2,62 @@
  * Generic class with utility methods for logging DB transactions in a Batchable job.
  * For example of implementation, see: ApexUnexpectedExceptionParsingJob
  */
-public abstract class BatchableLogger implements Database.Stateful {
-    public final String loggerTransactionId;
+public virtual without sharing class BatchableLogger {
+    private static final Set<String> savedTransactionIds = new Set<String>();
+    private static final Set<BatchableLogger> loggers = new Set<BatchableLogger>();
+
+    // See LoggerPlugin__mdt (custom metadata) record BatchableLogger_SaveListener, which installs the below inner-class as a custom plugin.
+    public class SaveListener implements LoggerPlugin.Triggerable {
+        public void execute(LoggerPlugin__mdt configuration, LoggerTriggerableContext input) {
+            switch on input.triggerOperationType {
+                when BEFORE_INSERT, BEFORE_UPDATE { }
+                when else { return; }
+            }
+            if (input.sobjectType == Log__c.SObjectType || input.sobjectType == LogEntryEvent__e.SObjectType) {
+                for (SObject log : input.triggerNew) {
+                    String transactionId = (String)log.get('TransactionId__c');
+                    if (transactionId != null) {
+                        savedTransactionIds.add(transactionId);
+                    }
+                }
+            } else {
+                return;
+            }
+            for (BatchableLogger logger : loggers) {
+                if (!logger.confirmedExists && savedTransactionIds.contains(logger.loggerTransactionId)) {
+                    logger.confirmedExists = true;
+                }
+            }
+        }
+    }
+
+    private String loggerTransactionId;
+    private Boolean confirmedExists = false; //flag which indicates whether the loggerTransactionId actually exists as a Log__c entry
 
     public BatchableLogger() {
+        this(false);
+    }
+
+    public BatchableLogger(Boolean parentOnThisTransaction) {
         this(Logger.getTransactionId());
+        if (parentOnThisTransaction) {
+            this.confirmedExists = true;
+        }
+    }
+
+    public BatchableLogger(BatchableLogger predecessor) {
+        this(predecessor != null ? predecessor.loggerTransactionId : Logger.getTransactionId());
+        if (predecessor != null && predecessor.confirmedExists) {
+            this.confirmedExists = true;
+        }
     }
 
     public BatchableLogger(String loggerTransactionId) {
         this.loggerTransactionId = loggerTransactionId;
+        loggers.add(this);
+        if (loggerTransactionId != null && savedTransactionIds.contains(loggerTransactionId)) {
+            this.confirmedExists = true;
+        }
     }
 
     // IMPORTANT: Subclasses MUST call setLoggerTransactionId() at the very start of each transaction (i.e. in start, execute, and finish methods)
@@ -18,10 +65,44 @@ public abstract class BatchableLogger implements Database.Stateful {
     // with a finally block that includes Logger.saveLog()
     public void setLoggerTransactionId() {
         try {
-            Logger.setParentLogTransactionId(this.loggerTransactionId);
+            loggers.add(this);
+            if (this.checkExists()) {
+                Logger.setParentLogTransactionId(this.loggerTransactionId);
+            } else {
+                // The original transaction Id was (probably) never used (barring a race condition).  Reset to the the current transaction id
+                this.loggerTransactionId = Logger.getTransactionId();
+                if (savedTransactionIds.contains(this.loggerTransactionId)) {
+                    this.confirmedExists = true;
+                }
+            }
         } catch (Exception e) {
             Logger.error('BatchableLogger.setLoggerTransactionId: ' + this.loggerTransactionId, e);
         }
+    }
+
+    private Boolean checkExists() {
+        if (this.confirmedExists) {
+            return true;
+        }
+        if (savedTransactionIds.contains(this.loggerTransactionId)) {
+            this.confirmedExists = true;
+            return true;
+        }
+        
+        /* There's a chance of a race condition here, between the timing of the PlatformEvent trigger which inserts the Log__c record,
+         * and when the Batchable/Queueable Apex job runs after scheduling.
+         * That's why it's preferable to use the 'parentOnThisTransaction' flag in the constructor, rather than rely on the below check
+         * to catch a parent log entry that is saved *after* the BatchableLogger is serialized in Database.executeBatch(...) or System.enqueue(...)
+         */
+        List<Log__c> parents = [SELECT Id, TransactionId__c FROM Log__c WHERE TransactionId__c = :this.loggerTransactionId WITH SYSTEM_MODE];
+        for (Log__c log : parents) {
+            if (log.TransactionId__c == this.loggerTransactionId) {
+                this.confirmedExists = true;
+                return true;
+            }
+        }
+        // The original transaction Id was (probably) never used (barring a race condition)
+        return false;
     }
 
     public class ProcessedDatabaseSaveResults {
