@@ -9,6 +9,11 @@
 		<members>CSVDeserializerTest</members>
 		<members>CSVParser</members>
 		<members>CSVParserTest</members>
+		<members>CSVWriter</members>
+		<members>PermissionsGridUsers</members>
+		<members>PermissionsGridObjectsFields</members>
+		<members>PermissionsGridProfileVsPs</members>
+		<members>AsyncProcessor</members>
 		<name>ApexClass</name>
 	</types>
 	<types>
