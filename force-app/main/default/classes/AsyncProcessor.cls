@@ -1,9 +1,6 @@
 /**
  * Utility for handling intensive or long-running jobs that require multiple transactions via the queueable interface.
  * See also: AsyncIterator class.
- * 
- * Created By: Bill Anderson
- * Created On: 8-24-2026
  */
 global abstract class AsyncProcessor extends BatchableLogger implements Queueable {
     public final AsyncIterator it;
@@ -68,14 +65,14 @@ global abstract class AsyncProcessor extends BatchableLogger implements Queueabl
     }
 
     public void execute(QueueableContext qc) {
-        this.execute(qc, true);
+        this.runExecute(qc, true);
     }
 
     public void executeSync(Boolean enqueueWhenDone) {
-        this.execute(null, enqueueWhenDone);
+        this.runExecute(null, enqueueWhenDone);
     }
 
-    virtual protected void execute(QueueableContext qc, Boolean enqueueWhenDone) {
+    virtual protected void runExecute(QueueableContext qc, Boolean enqueueWhenDone) {
         this.setLoggerTransactionId();
         this.it.setBufferTime(this.maxAfterIterationTime * 2 + this.extraBufferTime);
         this.execute(null, this.it);
@@ -148,9 +145,9 @@ global abstract class AsyncProcessor extends BatchableLogger implements Queueabl
 
         abstract public void finish(QueueableContext qc);
 
-        override virtual protected void execute(QueueableContext qc, Boolean enqueueWhenDone) {
+        override virtual protected void runExecute(QueueableContext qc, Boolean enqueueWhenDone) {
             if (this.it.hasMore()) {
-                super.execute(qc, enqueueWhenDone);
+                super.runExecute(qc, enqueueWhenDone);
                 if (!this.hasMore && enqueueWhenDone) {
                     this.enqueue();
                 }
@@ -162,7 +159,7 @@ global abstract class AsyncProcessor extends BatchableLogger implements Queueabl
 
         public void executeSyncNoFinish() {
             if (this.it.hasMore()) {
-                super.execute(null, false);
+                super.runExecute(null, false);
             }
         }
     }
