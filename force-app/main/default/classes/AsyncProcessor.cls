@@ -1,6 +1,9 @@
 /**
  * Utility for handling intensive or long-running jobs that require multiple transactions via the queueable interface.
  * See also: AsyncIterator class.
+ * 
+ * Created By: Bill Anderson
+ * Created On: 8-24-2026
  */
 global abstract class AsyncProcessor extends BatchableLogger implements Queueable {
     public final AsyncIterator it;
@@ -64,7 +67,7 @@ global abstract class AsyncProcessor extends BatchableLogger implements Queueabl
         return this.enqueuedJobId = (this.doEnqueue ? System.enqueueJob(this) : null);
     }
 
-    virtual public void execute(QueueableContext qc) {
+    public void execute(QueueableContext qc) {
         this.execute(qc, true);
     }
 
@@ -72,7 +75,7 @@ global abstract class AsyncProcessor extends BatchableLogger implements Queueabl
         this.execute(null, enqueueWhenDone);
     }
 
-    private void execute(QueueableContext qc, Boolean enqueueWhenDone) {
+    virtual protected void execute(QueueableContext qc, Boolean enqueueWhenDone) {
         this.setLoggerTransactionId();
         this.it.setBufferTime(this.maxAfterIterationTime * 2 + this.extraBufferTime);
         this.execute(null, this.it);
@@ -145,10 +148,10 @@ global abstract class AsyncProcessor extends BatchableLogger implements Queueabl
 
         abstract public void finish(QueueableContext qc);
 
-        override virtual public void execute(QueueableContext qc) {
+        override virtual protected void execute(QueueableContext qc, Boolean enqueueWhenDone) {
             if (this.it.hasMore()) {
-                super.execute(qc);
-                if (!this.hasMore) {
+                super.execute(qc, enqueueWhenDone);
+                if (!this.hasMore && enqueueWhenDone) {
                     this.enqueue();
                 }
             } else {
@@ -159,7 +162,7 @@ global abstract class AsyncProcessor extends BatchableLogger implements Queueabl
 
         public void executeSyncNoFinish() {
             if (this.it.hasMore()) {
-                this.executeSync(false);
+                super.execute(null, false);
             }
         }
     }
