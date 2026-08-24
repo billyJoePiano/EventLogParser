@@ -75,7 +75,9 @@ global abstract class AsyncProcessor extends BatchableLogger implements Queueabl
     virtual protected void runExecute(QueueableContext qc, Boolean enqueueWhenDone) {
         this.setLoggerTransactionId();
         this.it.setBufferTime(this.maxAfterIterationTime * 2 + this.extraBufferTime);
-        this.execute(null, this.it);
+
+        this.execute(qc, this.it);
+
         this.finishIterationTime = this.it.getCycleEndTime() ?? this.it.getTime();
         this.hasMore = this.it.hasMore();
         if (this.hasMore && enqueueWhenDone) {
