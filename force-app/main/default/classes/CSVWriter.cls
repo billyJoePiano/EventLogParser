@@ -1,3 +1,6 @@
+/**
+ * Utility for writing data in a CSV format
+ */
 public class CSVWriter {
     public enum LineSeparator { LF, CRLF }
     public static final LineSeparator LF = LineSeparator.LF;
@@ -11,6 +14,7 @@ public class CSVWriter {
     public final Boolean nullIsEmpty;
     public final Boolean alwaysQuote;
 
+    @TestVisible
     private final List<String> rowsRaw = new List<String>();
 
     public CSVWriter() {
@@ -67,19 +71,20 @@ public class CSVWriter {
     }
 
     public Id writeRowsAsync(List<List<Object>> rows, BatchableLogger originator, AsyncCallback callback) {
-        return new Async(originator, this, rows, callback).enqueue();
+        return new AsyncCSVProcessor(originator, this, rows, callback).enqueue();
     }
 
     public Id writeToStaticResourceAsync(List<List<Object>> rows, BatchableLogger originator, String caller, String staticResourceName, String staticResourceDescription, Boolean staticResourceCachePublic) {
         return this.writeRowsAsync(rows, originator, new AsyncCallbackStaticResourceWriterAndLogger(caller, staticResourceName, staticResourceDescription, staticResourceCachePublic));
     }
 
-    public class Async extends AsyncProcessor.WithFinish implements Database.AllowsCallouts {
+    public class AsyncCSVProcessor extends AsyncProcessor.WithFinish implements Database.AllowsCallouts {
         public final CSVWriter writer;
         public final AsyncCallback callback;
 
-        private Async(BatchableLogger originator, CSVWriter writer, List<List<Object>> rows, AsyncCallback callback) {
-            super(originator, new CannibalizingListIterator(rows));
+        @TestVisible
+        private AsyncCSVProcessor(BatchableLogger originator, CSVWriter writer, List<List<Object>> rows, AsyncCallback callback) {
+            super(originator, new AsyncProcessor.CannibalizingListIterator(rows));
             if (writer == null || rows == null || callback == null) {
                 throw new NullPointerException();
             }
@@ -130,6 +135,7 @@ public class CSVWriter {
         public final String staticResourceDescription;
         public final Boolean staticResourceCachePublic;
 
+        @TestVisible
         private AsyncCallbackStaticResourceWriterAndLogger(String caller, String staticResourceName, String staticResourceDescription, Boolean staticResourceCachePublic) {
             this.caller = caller;
             this.staticResourceName = staticResourceName;
@@ -138,13 +144,13 @@ public class CSVWriter {
         }
 
         override public void done(Blob result) {
-            // setLoggerTransactionId() is already run by AsyncProcessor.execute(), via Async class (above)
+            // setLoggerTransactionId() is already run by AsyncProcessor.execute(), via AsyncCSVProcessor class (above)
             new StaticResourceUtil(this.caller)
                 .updateCsvStaticResource(this.staticResourceName, this.staticResourceDescription, this.staticResourceCachePublic, result);
         }
 
         public void error(Exception e) {
-            // setLoggerTransactionId() is already run by AsyncProcessor.execute(), via Async class (above)
+            // setLoggerTransactionId() is already run by AsyncProcessor.execute(), via AsyncCSVProcessor class (above)
             Logger.error(this.caller, e);
             Logger.saveLog();
         }

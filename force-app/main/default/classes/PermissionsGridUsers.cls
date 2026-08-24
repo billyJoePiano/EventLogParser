@@ -1,3 +1,11 @@
+/**
+ * Utility for analyzing actually-existing Permissions in the Salesforce Org.
+ * 
+ * This creates a CSV spreadsheet where Profiles, Permission Sets, and Permission Set Groups are listed across the columns headers,
+ * while users are listed down the rows, showing which users are assigned to which Permission Sets and Permission Set Groups.
+ * 
+ * The resulting CSV is saved as a static resource, with a default name of 'PermissionsGridUsers'
+ */
 public class PermissionsGridUsers extends BatchableLogger implements Database.Batchable<SObject>, Database.Stateful, Database.AllowsCallouts {
     public static final String DEFAULT_STATIC_RESOURCE_NAME = 'PermissionsGridUsers';
     public static final Integer LAST_STEP = 3;

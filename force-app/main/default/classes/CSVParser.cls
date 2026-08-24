@@ -122,11 +122,12 @@ public class CSVParser implements Iterator<CSVParser.Row>, Iterable<CSVParser.Ro
         if (this.pos >= this.body.length()) {
             return false;
         }
-        if (this.body.charAt(this.pos) == LF) {
+        Integer charCode = this.body.charAt(this.pos);
+        if (charCode == LF) {
             this.pos++;
-            if (this.pos < this.body.length() && this.body.charAt(this.pos) == CR) {
-                this.pos++;
-            }
+            return false;
+        } else if (charCode == CR && (this.pos + 1 < this.body.length()) && (this.body.charAt(this.pos + 1) == LF)) {
+            this.pos += 2;
             return false;
         } else {
             return true;
@@ -179,7 +180,7 @@ public class CSVParser implements Iterator<CSVParser.Row>, Iterable<CSVParser.Ro
             Integer charAt = this.body.charAt(this.pos);
             if (charAt == QT) {
                 this.pos++;
-            } else if (charAt == LF) {
+            } else if (charAt == LF || charAt == CR) {
                 this.currentCellEndPos = this.pos;
                 this.currentRow.hasNextToParse = rowEndCheck();
                 break;
@@ -194,58 +195,51 @@ public class CSVParser implements Iterator<CSVParser.Row>, Iterable<CSVParser.Ro
         }        
         return String.join(substrings, '"');
     }
-    
+
+    public static final List<String> COMMA_OR_LINE_ENDING = new List<String> {',', '\n', '\r\n'};
     private String parseUnquotedCell() {
-        Integer nextCommaOrLF = this.nextIndex(',', '\n');
-        Integer nextQuoteOrCR = this.nextIndex('"', '\r');
+        Integer nextCommaOrLineEnding = this.nextIndex(COMMA_OR_LINE_ENDING);
+        Integer nextQuote = this.body.indexOf('"', this.pos);
         Integer start = this.pos;
-        if (nextQuoteOrCR == -1) {
-            if (nextCommaOrLF == -1) {
+        if (nextQuote == -1) {
+            if (nextCommaOrLineEnding == -1) {
                 // End of file
                 this.pos = this.body.length();
                 this.currentCellEndPos = this.pos;
                 this.currentRow.hasNextToParse = false;
                 return this.body.substring(start);
             }
-        } else if (nextCommaOrLF == -1 || nextCommaOrLF >= nextQuoteOrCR) {
-            if (this.body.charAt(nextQuoteOrCR) == QT) {
-                //check for whitespace preceding quoted cell
-                Boolean onlyWS = true;
-                for (Integer pos = this.pos; pos < nextQuoteOrCR; pos++) {
-                    Integer charCode = this.body.charAt(pos);
-                    if (!(charCode == SPACE || charCode == TAB)) {
-                        onlyWS = false;
-                        break;
-                    }
-                }
-                if (onlyWS) {
-                    this.pos = nextQuoteOrCR;
-                    return this.parseQuotedCell();
+        } else if (nextCommaOrLineEnding == -1 || nextCommaOrLineEnding >= nextQuote) {
+            //check that only whitespace precedes quoted cell
+            for (Integer pos = this.pos; pos < nextQuote; pos++) {
+                Integer charCode = this.body.charAt(pos);
+                if (!(charCode == SPACE || charCode == TAB)) {
+                    throw new CSVParsingException(this, 'Unexpected quotation mark before expected comma or newline (parsing unquoted cell)', this.pos, nextQuote + 1);
                 }
             }
-            throw new CSVParsingException(this, 'Unexpected quotation mark or carriage return before expected comma or newline (parsing unquoted cell)', this.pos, nextQuoteOrCR + 1);
+            this.pos = nextQuote;
+            return this.parseQuotedCell();
         }
-        this.currentCellEndPos = nextCommaOrLF;
-        if (this.body.charAt(nextCommaOrLF) == CM) {
-            this.pos = nextCommaOrLF + 1;
+        this.currentCellEndPos = nextCommaOrLineEnding;
+        if (this.body.charAt(nextCommaOrLineEnding) == CM) {
+            this.pos = nextCommaOrLineEnding + 1;
             // there is always an implied cell after a comma, even if it is empty.  Therefore, we do NOT perform rowEndCheck() here
         } else {
-            this.pos = nextCommaOrLF;
+            this.pos = nextCommaOrLineEnding;
             this.currentRow.hasNextToParse = rowEndCheck();
         }
-        return this.body.substring(start, nextCommaOrLF);
+        return this.body.substring(start, nextCommaOrLineEnding);
     }
     
-    private Integer nextIndex(String char1, String char2) {
-        Integer index1 = this.body.indexOf(char1, this.pos);
-        Integer index2 = this.body.IndexOf(char2, this.pos);
-        if (index1 != -1) {
-            if (index2 != -1) {
-                return Math.min(index1, index2);
+    public Integer nextIndex(List<String> chars) {
+        Integer bestIndex = -1;
+        for (String chr : chars) {
+            Integer charIndex = this.body.indexOf(chr, this.pos);
+            if (charIndex > -1 && (charIndex < bestIndex || bestIndex == -1)) {
+                bestIndex = charIndex;
             }
-            return index1;
-        } 
-        return index2;
+        }
+        return bestIndex;
     }
 
     private Integer exceptionStartPos() {

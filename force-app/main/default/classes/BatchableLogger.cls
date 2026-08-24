@@ -1,10 +1,17 @@
 /**
- * Generic class with utility methods for logging DB transactions in a Batchable job.
- * For example of implementation, see: ApexUnexpectedExceptionParsingJob
+ * @description       : Generic class with utility methods for logging DB transactions in a Batchable or Queueable job.
+ *                      For example of implementation, see: ApexUnexpectedExceptionParsingJob
  */
 public virtual without sharing class BatchableLogger {
+    public static final Integer CACHE_TTL = 3600; //3600 seconds = 1 hour
+    
+    @TestVisible
     private static final Set<String> savedTransactionIds = new Set<String>();
     private static final Set<BatchableLogger> loggers = new Set<BatchableLogger>();
+
+    public static Cache.OrgPartition getPartition() {
+        return Cache.Org.getPartition('local.BatchableLogger');
+    }
 
     // See LoggerPlugin__mdt (custom metadata) record BatchableLogger_SaveListener, which installs the below inner-class as a custom plugin.
     public class SaveListener implements LoggerPlugin.Triggerable {
@@ -14,50 +21,52 @@ public virtual without sharing class BatchableLogger {
                 when else { return; }
             }
             if (input.sobjectType == Log__c.SObjectType || input.sobjectType == LogEntryEvent__e.SObjectType) {
+                Cache.OrgPartition partition = getPartition();
                 for (SObject log : input.triggerNew) {
                     String transactionId = (String)log.get('TransactionId__c');
                     if (transactionId != null) {
                         savedTransactionIds.add(transactionId);
+                        partition.put(transactionId.replace('-', ''), true, CACHE_TTL);
                     }
                 }
-            } else {
-                return;
-            }
-            for (BatchableLogger logger : loggers) {
-                if (!logger.confirmedExists && savedTransactionIds.contains(logger.loggerTransactionId)) {
-                    logger.confirmedExists = true;
+                for (BatchableLogger logger : loggers) {
+                    if (!logger.confirmedExists && savedTransactionIds.contains(logger.loggerTransactionId)) {
+                        logger.confirmedExists = true;
+                    }
                 }
             }
         }
     }
 
     private String loggerTransactionId;
-    private Boolean confirmedExists = false; //flag which indicates whether the loggerTransactionId actually exists as a Log__c entry
+    @TestVisible
+    private Boolean confirmedExists; //flag which indicates whether the loggerTransactionId actually exists as a Log__c entry
 
     public BatchableLogger() {
         this(false);
     }
 
     public BatchableLogger(Boolean parentOnThisTransaction) {
-        this(Logger.getTransactionId());
-        if (parentOnThisTransaction) {
-            this.confirmedExists = true;
-        }
+        this(Logger.getTransactionId(), parentOnThisTransaction);
     }
 
     public BatchableLogger(BatchableLogger predecessor) {
-        this(predecessor != null ? predecessor.loggerTransactionId : Logger.getTransactionId());
-        if (predecessor != null && predecessor.confirmedExists) {
-            this.confirmedExists = true;
-        }
+        this(predecessor?.loggerTransactionId ?? Logger.getTransactionId(), predecessor?.confirmedExists ?? false);
     }
 
     public BatchableLogger(String loggerTransactionId) {
-        this.loggerTransactionId = loggerTransactionId;
+        this(loggerTransactionId, false);
+    }
+
+    private BatchableLogger(String loggerTransactionId, Boolean confirmedExists) {
         loggers.add(this);
-        if (loggerTransactionId != null && savedTransactionIds.contains(loggerTransactionId)) {
-            this.confirmedExists = true;
-        }
+        this.loggerTransactionId = loggerTransactionId;
+        this.confirmedExists = confirmedExists;
+        this.checkExists(false);
+    }
+
+    public String getLoggerTransactionId() {
+        return this.loggerTransactionId;
     }
 
     // IMPORTANT: Subclasses MUST call setLoggerTransactionId() at the very start of each transaction (i.e. in start, execute, and finish methods)
@@ -66,21 +75,19 @@ public virtual without sharing class BatchableLogger {
     public void setLoggerTransactionId() {
         try {
             loggers.add(this);
-            if (this.checkExists()) {
+            if (this.checkExists(true)) {
                 Logger.setParentLogTransactionId(this.loggerTransactionId);
             } else {
                 // The original transaction Id was (probably) never used (barring a race condition).  Reset to the the current transaction id
                 this.loggerTransactionId = Logger.getTransactionId();
-                if (savedTransactionIds.contains(this.loggerTransactionId)) {
-                    this.confirmedExists = true;
-                }
+                this.checkExists(false);
             }
         } catch (Exception e) {
             Logger.error('BatchableLogger.setLoggerTransactionId: ' + this.loggerTransactionId, e);
         }
     }
 
-    private Boolean checkExists() {
+    private Boolean checkExists(Boolean queryDb) {
         if (this.confirmedExists) {
             return true;
         }
@@ -94,11 +101,24 @@ public virtual without sharing class BatchableLogger {
          * That's why it's preferable to use the 'parentOnThisTransaction' flag in the constructor, rather than rely on the below check
          * to catch a parent log entry that is saved *after* the BatchableLogger is serialized in Database.executeBatch(...) or System.enqueue(...)
          */
-        List<Log__c> parents = [SELECT Id, TransactionId__c FROM Log__c WHERE TransactionId__c = :this.loggerTransactionId WITH SYSTEM_MODE];
-        for (Log__c log : parents) {
-            if (log.TransactionId__c == this.loggerTransactionId) {
-                this.confirmedExists = true;
-                return true;
+        Cache.OrgPartition partition = getPartition();
+        String loggerIdNoDashes = this.loggerTransactionId.replace('-', '');
+        if (partition.get(loggerIdNoDashes) == true) {
+            partition.put(loggerIdNoDashes, true, CACHE_TTL); // refresh time-to-live
+            savedTransactionIds.add(this.loggerTransactionId);
+            this.confirmedExists = true;
+            return true;
+        }
+
+        if (queryDb) {
+            List<Log__c> parents = [SELECT Id, TransactionId__c FROM Log__c WHERE TransactionId__c = :this.loggerTransactionId WITH SYSTEM_MODE];
+            for (Log__c log : parents) {
+                if (log.TransactionId__c == this.loggerTransactionId) {
+                    partition.put(loggerIdNoDashes, true, CACHE_TTL);
+                    savedTransactionIds.add(this.loggerTransactionId);
+                    this.confirmedExists = true;
+                    return true;
+                }
             }
         }
         // The original transaction Id was (probably) never used (barring a race condition)

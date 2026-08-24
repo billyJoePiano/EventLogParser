@@ -1,3 +1,12 @@
+/**
+ * Utility for analyzing actually-existing Permissions in the Salesforce Org.
+ * 
+ * This creates a CSV spreadsheet where Profiles, Permission Sets, and Permission Set Groups are listed across the column headers,
+ * while Objects and their fields are listed down the rows, showing which Profiles/PSs/PSGs grant read and edit access to
+ * which objects and fields.
+ * 
+ * The resulting CSV is saved as a static resource, with a default name of 'PermissionsGridObjectsFields'
+ */
 public class PermissionsGridObjectsFields extends BatchableLogger implements Database.Batchable<SObject>, Database.Stateful, Database.AllowsCallouts {
     public static final String DEFAULT_STATIC_RESOURCE_NAME = 'PermissionsGridObjectsFields';
     public static final Integer LAST_STEP = 3;

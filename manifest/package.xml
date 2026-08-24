@@ -4,16 +4,21 @@
 		<members>ApexUnexpectedExceptionParsingJob</members>
 		<members>ApexUnexpectedExceptionParsingJobTest</members>
 		<members>ApexUnexpectedExceptionTriggerHandler</members>
+		<members>AsyncIterator</members>
+		<members>AsyncProcessor</members>
+		<members>AsyncTest</members>
 		<members>BatchableLogger</members>
+		<members>BatchableLoggerSaveListenerTest</members>
 		<members>CSVDeserializer</members>
 		<members>CSVDeserializerTest</members>
 		<members>CSVParser</members>
 		<members>CSVParserTest</members>
 		<members>CSVWriter</members>
-		<members>PermissionsGridUsers</members>
+		<members>CSVWriterTest</members>
 		<members>PermissionsGridObjectsFields</members>
 		<members>PermissionsGridProfileVsPs</members>
-		<members>AsyncProcessor</members>
+		<members>PermissionsGridTest</members>
+		<members>PermissionsGridUsers</members>
 		<name>ApexClass</name>
 	</types>
 	<types>
@@ -52,6 +57,10 @@
 	<types>
 		<members>EventLogFileParserAdmin</members>
 		<name>PermissionSet</name>
+	</types>
+	<types>
+		<members>BatchableLogger</members>
+		<name>PlatformCachePartition</name>
 	</types>
 	<types>
 		<members>EventLogFileParsing__c.EventLogFileParsing_UpdateAction</members>

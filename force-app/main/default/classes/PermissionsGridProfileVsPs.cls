@@ -1,3 +1,11 @@
+/**
+ * Utility for analyzing actually-existing Permissions in the Salesforce Org.
+ * 
+ * This creates a CSV spreadsheet where Profiles are listed across the column headers, while Permission Sets and Permission Set Groups are
+ * listed down the rows, showing the number of differences in permissions granted at each intersection.
+ * 
+ * The CSV is saved as a static resource, with a default name of 'PermissionsGridProfileVsPs'
+ */
 public class PermissionsGridProfileVsPs extends BatchableLogger implements Database.Batchable<SObject>, Database.Stateful, Database.AllowsCallouts {
     public static final String DEFAULT_STATIC_RESOURCE_NAME = 'PermissionsGridProfileVsPs';
 
@@ -14,28 +22,29 @@ public class PermissionsGridProfileVsPs extends BatchableLogger implements Datab
     public final String staticResourceName;
     public final List<PermissionSet> profiles = new List<PermissionSet>();
     public final List<PermissionSet> pss = new List<PermissionSet>(); //non-profile PermissionSets
-    
-    //dummy Object/FieldPermissions, reused to save on heap-space
+
+    // dummy Object/FieldPermissions, reused to save on heap-space.  Maps a hash (based on granted permissions) to permissions object.
+    // See methods: getDummyObjectPermissions, getDummyFieldPermissions
     public final Map<Integer, ObjectPermissions> dummyOps = new Map<Integer, ObjectPermissions>();
     public final Map<Integer, FieldPermissions> dummyFps = new Map<Integer, FieldPermissions>();
-    
+
     // Maps psId => SObject name => ObjectPermissions
     public final Map<Id, Map<String, ObjectPermissions>> profileOps = new Map<Id, Map<String, ObjectPermissions>>();
     public final Map<Id, Map<String, ObjectPermissions>> psOps = new Map<Id, Map<String, ObjectPermissions>>();
-    
+
     // Maps psId => SObject name => fieldName (normalized, w/o SObject name) => FieldPermissions
     public final Map<Id, Map<String, Map<String, FieldPermissions>>> profileFps = new Map<Id, Map<String, Map<String, FieldPermissions>>>();
     public final Map<Id, Map<String, Map<String, FieldPermissions>>> psFps = new Map<Id, Map<String, Map<String, FieldPermissions>>>();
-    
+
     // Maps psId (non-profile) => psId (profile) => DiffCounts
     public final Map<Id, Map<Id, DiffCounter>> result = new Map<Id, Map<Id, DiffCounter>>();
     public final Map<Id, List<Double>> resultSorting = new Map<Id, List<Double>>(); // value is a List of 3 doubles returned by DiffCounter.calcOutput/getOutput
     public final List<List<Object>> output = new List<List<Object>>();
 
     public final List<Id> readyToCompare = new List<Id>();
-    private ObjectPermissionsComparisonProcessor objectProcessor = null;
-    private FieldPermissionsComparisonProcessor fieldProcessor = null;
-    
+    public ObjectPermissionsComparisonProcessor objectProcessor = null;
+    public FieldPermissionsComparisonProcessor fieldProcessor = null;
+
     public final Set<Id> unexpectedPsIds = new Set<Id>();
     public final List<SObject> duplicatePerms = new List<SObject>();
 
@@ -53,11 +62,11 @@ public class PermissionsGridProfileVsPs extends BatchableLogger implements Datab
         try {
             String query;
             switch on this.step {
-                when 1 { query = query1(); }
-                when 2 { query = query2(); }
-                when 3 { query = query3(); }
-                when 4 { query = query4(); }
-                when 5 { query = query5(); }
+                when 1 { query = this.query1(); }
+                when 2 { query = this.query2(); }
+                when 3 { query = this.query3(); }
+                when 4 { query = this.query4(); }
+                when 5 { query = this.query5(); }
                 when else { throw new IllegalArgumentException('Unexpected step: ' + this.step); }
             }
             Set<Id> parentIds = null;
@@ -80,6 +89,7 @@ public class PermissionsGridProfileVsPs extends BatchableLogger implements Datab
         } catch (Exception e) {
             Logger.error('PermissionsGridProfileVsPs.start, step ' + this.step, e);
             Logger.saveLog();
+            if (Test.isRunningTest()) throw e;
             return null;
         }
     }
@@ -101,6 +111,7 @@ public class PermissionsGridProfileVsPs extends BatchableLogger implements Datab
         } catch (Exception e) {
             Logger.error('PermissionsGridProfileVsPs.execute, step ' + this.step, e);
             Logger.saveLog();
+            if (Test.isRunningTest()) throw e;
         }
     }
 
@@ -117,6 +128,7 @@ public class PermissionsGridProfileVsPs extends BatchableLogger implements Datab
         } catch (Exception e) {
             Logger.error('PermissionsGridProfileVsPs.finish, step ' + finishStep, e);
             Logger.saveLog();
+            if (Test.isRunningTest()) throw e;
         }
     }
     
@@ -137,6 +149,7 @@ public class PermissionsGridProfileVsPs extends BatchableLogger implements Datab
         } catch (Exception e) {
             Logger.error('PermissionsGridProfileVsPs.nextStep for next step ' + this.step, e);
             Logger.saveLog();
+            if (Test.isRunningTest()) throw e;
         }
     }
 
@@ -224,11 +237,9 @@ public class PermissionsGridProfileVsPs extends BatchableLogger implements Datab
 
         if (!isProfile) {
             // It's neccessary to do comparison processing for as many records as we can, given CPU limits,
-            // in order to free heap-space and reduce size of the object being serialized between executions
-            if (this.objectProcessor == null) {
-                this.objectProcessor = new ObjectPermissionsComparisonProcessor(this, new AsyncProcessor.CannibalizingListIterator(this.readyToCompare));
-            }
-            this.objectProcessor.executeSync();
+            // in order to free heap-space and reduce size of the PermissionGridProfileVsPs instance being serialized between executions
+            this.objectProcessor = this.objectProcessor ?? new ObjectPermissionsComparisonProcessor(this, new AsyncProcessor.CannibalizingListIterator(this.readyToCompare));
+            this.objectProcessor.executeSyncNoFinish();
         }
     }
 
@@ -264,12 +275,8 @@ public class PermissionsGridProfileVsPs extends BatchableLogger implements Datab
                 this.readyToCompare.add(psId);
             }
         }
-        if (this.objectProcessor == null) {
-            this.objectProcessor = new ObjectPermissionsComparisonProcessor(this, new AsyncProcessor.CannibalizingListIterator(this.readyToCompare));
-        }
-        this.objectProcessor.executeSync();
-        this.objectProcessor.resetTimingCounters();
-        this.objectProcessor.enqueue();
+        this.objectProcessor = this.objectProcessor ?? new ObjectPermissionsComparisonProcessor(this, new AsyncProcessor.CannibalizingListIterator(this.readyToCompare));
+        this.objectProcessor.executeSync(true);
     }
 
     public String query4() {
@@ -351,11 +358,9 @@ public class PermissionsGridProfileVsPs extends BatchableLogger implements Datab
 
         if (!isProfile) {
             // It's neccessary to do comparison processing for as many records as we can, given CPU limits,
-            // in order to free heap-space and reduce size of the object being serialized between executions
-            if (this.fieldProcessor == null) {
-                this.fieldProcessor = new FieldPermissionsComparisonProcessor(this, new AsyncProcessor.CannibalizingListIterator(this.readyToCompare));
-            }
-            this.fieldProcessor.executeSync();
+            // in order to free heap-space and reduce size of the PermissionGridProfileVsPs instance being serialized between executions
+            this.fieldProcessor = this.fieldProcessor ?? new FieldPermissionsComparisonProcessor(this, new AsyncProcessor.CannibalizingListIterator(this.readyToCompare));
+            this.fieldProcessor.executeSyncNoFinish();
         }
     }
 
@@ -399,11 +404,8 @@ public class PermissionsGridProfileVsPs extends BatchableLogger implements Datab
             }
         }
 
-        if (this.fieldProcessor == null) {
-            this.fieldProcessor = new FieldPermissionsComparisonProcessor(this, new AsyncProcessor.CannibalizingListIterator(this.readyToCompare));
-        }
-        this.fieldProcessor.executeSync();
-        this.fieldProcessor.enqueue();
+        this.fieldProcessor = this.fieldProcessor ?? new FieldPermissionsComparisonProcessor(this, new AsyncProcessor.CannibalizingListIterator(this.readyToCompare));
+        this.fieldProcessor.executeSync(true);
     }
 
     // called by fieldProcessor after it finishes
@@ -419,9 +421,8 @@ public class PermissionsGridProfileVsPs extends BatchableLogger implements Datab
         }
 
         SortingProcessor sortingProc = new SortingProcessor(this, psIds.iterator());
-        sortingProc.executeSync();
-        Id jobId = sortingProc.enqueue();
-        Logger.debug('PermissionsGridProfileVsPs.sortComparisonResults (step 6), JobId ' + jobId);
+        sortingProc.executeSync(true);
+        Logger.debug('PermissionsGridProfileVsPs.sortComparisonResults (step 6), JobId ' + (((String)sortingProc.enqueuedJobId) ?? '(Finished synchronously on originating transaction)'));
         Logger.saveLog();
     }
 
@@ -452,9 +453,8 @@ public class PermissionsGridProfileVsPs extends BatchableLogger implements Datab
 
         this.addPermissionSetHeaders();
         OutputProcessor outputProc = new OutputProcessor(this, ((List<Object>)this.pss).iterator());
-        outputProc.executeSync();
-        Id jobId = outputProc.enqueue();
-        Logger.debug('PermissionsGridProfileVsPs.processOutput (step 7), JobId ' + jobId);
+        outputProc.executeSync(true);
+        Logger.debug('PermissionsGridProfileVsPs.processOutput (step 7), JobId ' + (((String)outputProc.enqueuedJobId) ?? '(Finished synchronously on originating transaction)'));
         Logger.saveLog();
     }
 
@@ -487,6 +487,7 @@ public class PermissionsGridProfileVsPs extends BatchableLogger implements Datab
         Logger.saveLog();
     }
 
+    @TestVisible
     private abstract class StepProcessor extends AsyncProcessor.WithFinish {
         private final PermissionsGridProfileVsPs parent;
         private String className; //set by subclass
@@ -506,6 +507,7 @@ public class PermissionsGridProfileVsPs extends BatchableLogger implements Datab
             } catch (Exception e) {
                 Logger.error('PermissionsGridProfileVsPs.' + this.className + '.execute', e);
                 Logger.saveLog();
+                if (Test.isRunningTest()) throw e;
             }
         }
 
@@ -515,10 +517,12 @@ public class PermissionsGridProfileVsPs extends BatchableLogger implements Datab
             } catch (Exception e) {
                 Logger.error('PermissionsGridProfileVsPs.' + this.className + '.finish', e);
                 Logger.saveLog();
+                if (Test.isRunningTest()) throw e;
             }
         }
     }
 
+    @TestVisible
     private class ObjectPermissionsComparisonProcessor extends StepProcessor {
         private ObjectPermissionsComparisonProcessor(PermissionsGridProfileVsPs parent, Iterator<Object> it) {
             super(parent, it);
@@ -530,6 +534,7 @@ public class PermissionsGridProfileVsPs extends BatchableLogger implements Datab
         }
     }
 
+    @TestVisible
     private class FieldPermissionsComparisonProcessor extends StepProcessor {
         private FieldPermissionsComparisonProcessor(PermissionsGridProfileVsPs parent, Iterator<Object> it) {
             super(parent, it);

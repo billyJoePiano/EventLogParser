@@ -44,7 +44,7 @@ public class CSVParserTest {
     public static void testEmptyRow() {
         List<List<String>> expected = new List<List<String>> { new List<String>() };
         assertParsing('\n', expected);
-        assertParsing('\n\r', expected);
+        assertParsing('\r\n', expected);
     }
 
     @IsTest
@@ -60,20 +60,22 @@ public class CSVParserTest {
         assertParsing('"",\n,""\n', expected);
         assertParsing(',""\n"",\n', expected);
         //same again, but with trailing LFCR
-        assertParsing(',\n\r,\n\r', expected);
-        assertParsing('"",""\n\r"",""\n\r', expected);
-        assertParsing('"",\n\r,""\n\r', expected);
-        assertParsing(',""\n\r"",\n\r', expected);
+        assertParsing(',\r\n,\r\n', expected);
+        assertParsing('"",""\r\n"",""\r\n', expected);
+        assertParsing('"",\r\n,""\r\n', expected);
+        assertParsing(',""\r\n"",\r\n', expected);
     }
 
     @IsTest
     public static void testUnquotedCells() {
         assertParsing('text1,text2\ntext3', new List<List<String>> { new List<String> {'text1','text2'}, new List<String> {'text3'}});
+        assertParsing('text1,text2\r\ntext3', new List<List<String>> { new List<String> {'text1','text2'}, new List<String> {'text3'}});
     }
 
     @IsTest   
     public static void testEscapedQuotesAndNewlines() {
         assertParsing('"""text in quotes""","text\n""in quotes"" 2"', new List<List<String>> { new List<String> {'"text in quotes"', 'text\n"in quotes" 2'}});
+        assertParsing('"""text in quotes""","text\r\n""in quotes"" 2"', new List<List<String>> { new List<String> {'"text in quotes"', 'text\r\n"in quotes" 2'}});
     }
 
     @IsTest
@@ -87,7 +89,7 @@ public class CSVParserTest {
             assertParsing('cell1,cell2",cell3', new List<List<String>> { new List<String> {'cell1'}});
             System.assert(false, 'Expected CSVParsingException');
         } catch (CSVParser.CSVParsingException e) {
-            System.assertEquals('Unexpected quotation mark or carriage return before expected comma or newline (parsing unquoted cell)\nDocument character position: 6\ncell2"', e.getMessage());
+            System.assertEquals('Unexpected quotation mark before expected comma or newline (parsing unquoted cell)\nDocument character position: 6\ncell2"', e.getMessage());
         }
         System.assertEquals(0, verifiedRows);
         System.assertEquals(1, verifiedCells);
@@ -119,7 +121,7 @@ public class CSVParserTest {
 
     @IsTest
     public static void testGetHeaderRow() {
-        CSVParser parser = new CSVParser('Header1,Header2\nData1.1,Data1.2\nData2.1,Data2.2');
+        CSVParser parser = new CSVParser('Header1,Header2\r\nData1.1,Data1.2\r\nData2.1,Data2.2');
         Integer counter = 1;
         for (String actual : parser.getHeaderRow()) {
             System.assertEquals('Header' + counter, actual);
@@ -137,7 +139,7 @@ public class CSVParserTest {
 
     @IsTest
     public static void testIterator() {
-        CSVParser parser = new CSVParser('test1,test2\ntest3,test4');
+        CSVParser parser = new CSVParser('test1,test2\r\ntest3,test4');
         System.assert(parser.hasNext());
 
         CSVParser.Row row = parser.next();
@@ -172,7 +174,7 @@ public class CSVParserTest {
 
     @IsTest
     public static void testToList() {
-        CSVParser parser = new CSVParser('test1,test2\ntest3,test4');
+        CSVParser parser = new CSVParser('test1,test2\r\ntest3,test4');
         List<List<String>> expected = new List<List<String>> { new List<String> {'test1','test2'}, new List<String> {'test3','test4'}};
         assertParsing(parser.toList(), expected);
     }
