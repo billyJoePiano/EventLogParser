@@ -217,7 +217,7 @@ public without sharing class ApexUnexpectedExceptionParsingJob extends Batchable
             .setFieldMapping('USER_ID_DERIVED', 'UserId__c');
     }
 
-    public class ParsingResult implements SObjectWrapper {
+    public class ParsingResult implements DmlLogger.SObjectWrapper {
         public final EventLogFileParsing__c parsing;
         public final List<ApexUnexpectedException__c> exceptions;
 
@@ -279,16 +279,16 @@ public without sharing class ApexUnexpectedExceptionParsingJob extends Batchable
         }
 
         List<Database.SaveResult> saveResults = Database.insert(parsingsToInsert, false, AccessLevel.SYSTEM_MODE);
-        ProcessedDatabaseSaveResults processed = this.processAndLogDatabaseSaveResults(
+        DmlLogger.ProcessedDatabaseDmlResults processed = DmlLogger.processAndLogDatabaseSaveResults(
             'ApexUnexpectedExceptionParsingJob.processEvents',
             EventLogFileParsing__c.SObjectType,
             saveResults, parsingResults,
-            new SObjectWrapperHandler()
+            new DmlLogger.SObjectWrapperHandler()
         );
 
         //convert List<Object> to List<ParsingResult>
         List<ParsingResult> successfulSaves = new List<ParsingResult>();
-        for (Object result : processed.successfulSaves) {
+        for (Object result : processed.successfulDmls) {
             successfulSaves.add((ParsingResult)result);
         }
         return successfulSaves;
@@ -335,7 +335,7 @@ public without sharing class ApexUnexpectedExceptionParsingJob extends Batchable
         }
 
         List<Database.SaveResult> saveResults = Database.insert(excsToInsert, false, AccessLevel.SYSTEM_MODE);
-        this.processAndLogDatabaseSaveResults('ApexUnexpectedExceptionParsingJob.processExceptions', ApexUnexpectedException__c.SObjectType, saveResults, excsToInsert);
+        DmlLogger.processAndLogDatabaseSaveResults('ApexUnexpectedExceptionParsingJob.processExceptions', ApexUnexpectedException__c.SObjectType, saveResults, excsToInsert);
     }
 
     public class UnmappedValuesHandler extends CSVDeserializer.UnmappedValuesJsonSerializer {

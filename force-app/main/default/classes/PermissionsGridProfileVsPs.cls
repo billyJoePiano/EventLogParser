@@ -6,7 +6,7 @@
  * 
  * The CSV is saved as a static resource, with a default name of 'PermissionsGridProfileVsPs'
  */
-public class PermissionsGridProfileVsPs extends BatchableLogger implements Database.Batchable<SObject>, Database.Stateful, Database.AllowsCallouts {
+public without sharing class PermissionsGridProfileVsPs extends BatchableLogger implements Database.Batchable<SObject>, Database.Stateful, Database.AllowsCallouts {
     public static final String DEFAULT_STATIC_RESOURCE_NAME = 'PermissionsGridProfileVsPs';
 
     public static void makePermissionsGrid() {

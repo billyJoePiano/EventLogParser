@@ -38,25 +38,34 @@ public class ApexUnexpectedExceptionParsingJobTest {
     }
 
     @IsTest
-    public static void testBatchableLoggerFailure() {
+    public static void testDmlLoggerFailure() {
         List<EventLogFileParsing__c> parsings = new List<EventLogFileParsing__c> {
             new EventLogFileParsing__c(
                 Id__c = '1234567890abcdefghijklmnopqrstuvwxyz' //will exceed the limit of 18 characters when inserting
             )    
         };
 
-        // test full failure
+        // test full failure insert
         List<Database.SaveResult> saveResults = Database.insert(parsings, false, AccessLevel.SYSTEM_MODE);
-        new ApexUnexpectedExceptionParsingJob()
-            .processAndLogDatabaseSaveResults('ApexUnexpectedExceptionParsingJobTest.testBatchableLoggerFailure',
-                                              EventLogFileParsing__c.SObjectType, saveResults, parsings);
+        DmlLogger.processAndLogDatabaseSaveResults('ApexUnexpectedExceptionParsingJobTest.testBatchableLoggerFailure',
+                                                   EventLogFileParsing__c.SObjectType, saveResults, parsings);
 
-        //test partial success
+        //test partial success insert
         parsings.add(new EventLogFileParsing__c());
         saveResults = Database.insert(parsings, false, AccessLevel.SYSTEM_MODE);
-        new ApexUnexpectedExceptionParsingJob()
-            .processAndLogDatabaseSaveResults('ApexUnexpectedExceptionParsingJobTest.testBatchableLoggerFailure',
-                                              EventLogFileParsing__c.SObjectType, saveResults, parsings);
+        DmlLogger.processAndLogDatabaseSaveResults('ApexUnexpectedExceptionParsingJobTest.testBatchableLoggerFailure',
+                                                   EventLogFileParsing__c.SObjectType, saveResults, parsings);
+
+        // test full failure upsert
+        List<Database.UpsertResult> upsertResults = Database.upsert(parsings, false, AccessLevel.SYSTEM_MODE);
+        DmlLogger.processAndLogDatabaseUpsertResults('ApexUnexpectedExceptionParsingJobTest.testBatchableLoggerFailure',
+                                                     EventLogFileParsing__c.SObjectType, upsertResults, parsings);
+
+        //test partial success upsert
+        parsings.add(new EventLogFileParsing__c());
+        upsertResults = Database.upsert(parsings, false, AccessLevel.SYSTEM_MODE);
+        DmlLogger.processAndLogDatabaseUpsertResults('ApexUnexpectedExceptionParsingJobTest.testBatchableLoggerFailure',
+                                                     EventLogFileParsing__c.SObjectType, upsertResults, parsings, new DmlLogger.DefaultSObjectHandler());
 
         // test update trigger handler code path for ApexUnexpectedException__c
         System.assert(saveResults.get(1).isSuccess());

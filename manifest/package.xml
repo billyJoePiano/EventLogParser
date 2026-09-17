@@ -9,12 +9,15 @@
 		<members>AsyncTest</members>
 		<members>BatchableLogger</members>
 		<members>BatchableLoggerSaveListenerTest</members>
+		<members>CRTUserRefresher</members>
+		<members>CRTUserRefresherTest</members>
 		<members>CSVDeserializer</members>
 		<members>CSVDeserializerTest</members>
 		<members>CSVParser</members>
 		<members>CSVParserTest</members>
 		<members>CSVWriter</members>
 		<members>CSVWriterTest</members>
+		<members>DmlLogger</members>
 		<members>PermissionsGridObjectsFields</members>
 		<members>PermissionsGridProfileVsPs</members>
 		<members>PermissionsGridTest</members>
@@ -43,6 +46,10 @@
 		<members>ApexUnexpectedException_Lightning_Record_Page</members>
 		<members>EventLogFileParsing_Lighting_Record_Page</members>
 		<name>FlexiPage</name>
+	</types>
+	<types>
+		<members>CRT_Test_Users</members>
+		<name>Group</name>
 	</types>
 	<types>
 		<members>ApexUnexpectedException__c-ApexUnexpectedException Layout</members>

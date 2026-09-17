@@ -6,7 +6,7 @@
  * 
  * The resulting CSV is saved as a static resource, with a default name of 'PermissionsGridUsers'
  */
-public class PermissionsGridUsers extends BatchableLogger implements Database.Batchable<SObject>, Database.Stateful, Database.AllowsCallouts {
+public without sharing class PermissionsGridUsers extends BatchableLogger implements Database.Batchable<SObject>, Database.Stateful, Database.AllowsCallouts {
     public static final String DEFAULT_STATIC_RESOURCE_NAME = 'PermissionsGridUsers';
     public static final Integer LAST_STEP = 3;
 
