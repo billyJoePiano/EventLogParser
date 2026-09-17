@@ -18,10 +18,14 @@
 		<members>CSVWriter</members>
 		<members>CSVWriterTest</members>
 		<members>DmlLogger</members>
+		<members>HttpMock</members>
+		<members>LoggerSettingsRefresher</members>
+		<members>LoggerSettingsRefresherTest</members>
 		<members>PermissionsGridObjectsFields</members>
 		<members>PermissionsGridProfileVsPs</members>
 		<members>PermissionsGridTest</members>
 		<members>PermissionsGridUsers</members>
+		<members>StaticResourceUtil</members>
 		<name>ApexClass</name>
 	</types>
 	<types>
