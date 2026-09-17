@@ -2,12 +2,6 @@
  * Populates a sandbox with CRT test users, using data in the static resource CRTUsers.
  * CRTUserRefresher.populateFromStaticResource() should be idempotent, and will add any missing PS/PSG/Group assignments to existing users.
  * However, it does NOT remove extraneous assignments from existing users which are not included in the static resource.
- * 
- * Unlike other classes ending in 'Refresher', CRTUserRefresher.populateFromStaticResource() is NOT called by the SandboxSetup class.
- * Instead, it must be manually invoked after refresh, only in environments where automated testing is desired.
- * 
- * Created By: Bill Anderson
- * Last Modified: Bill Anderson 9-11-2026
  */
 public without sharing class CRTUserRefresher {
     public static final String STATIC_RESOURCE_NAME = 'CRTUsers';
